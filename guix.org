@@ -1,0 +1,174 @@
+* Systems
+
+** Base
+
+#+BEGIN_SRC scheme :tangle ~/.config/guix/wj/systems/base.scm
+
+  (define-module (wj systems base)
+    #:use-module (gnu)
+    #:use-module (gnu packages zile)
+    #:use-module (gnu packages connman)
+    #:use-module (gnu packages version-control)
+    #:use-module (nongnu packages linux)
+    #:use-module (nongnu system linux-initrd))
+
+  (use-package-modules certs)
+  ;;  (use-service-modules networking)
+
+  (define-public base-system
+    (operating-system
+     (kernel linux)
+     (firmware (list linux-firmware))
+     (initrd microcode-initrd)
+
+     (keyboard-layout (keyboard-layout "us"))
+
+     (users (cons* (user-account
+                    (name "wj")
+                    (comment "weebojensen")
+                    (group "users")
+                    (home-directory "/home/wj")
+                    (supplementary-groups
+                     '("wheel"
+                       "netdev"
+                       "audio"
+                       "video"
+                       "input"
+                       "tty")))
+                   %base-user-accounts))
+
+     (packages (append (list
+                        zile
+                        connman
+                        nss-certs
+                        git)
+                       %base-packages))
+
+))
+
+#+END_SRC
+
+
+** Silver
+
+#+BEGIN_SRC scheme :tangle ~/.config/guix/wj/systems/silver.scm
+
+  (define-module (wj systems silver)
+    #:use-module (nongnu packages linux)
+    #:use-module (nongnu system linux-initrd)
+    #:use-module (gnu packages zile)
+    #:use-module (gnu packages connman)
+    #:use-module (gnu packages version-control)
+    #:use-module (gnu packages xorg)
+    #:use-module (gnu packages linux)
+    #:use-module (gnu services networking)
+    #:use-module (gnu packages certs)
+    #:use-module (gnu))
+
+  (operating-system
+   (kernel linux)
+   (firmware (list linux-firmware))
+   (initrd microcode-initrd)
+
+   (keyboard-layout (keyboard-layout "us"))
+   (host-name "silver")
+   (timezone "Europe/Oslo")
+
+   (users (cons* (user-account
+		  (name "wj")
+		  (comment "weebojensen")
+		  (group "users")
+		  (home-directory "/home/wj")
+		  (supplementary-groups
+		   '("wheel"
+		     "netdev"
+		     "audio"
+		     "video"
+		     "input"
+		     "tty")))
+		 %base-user-accounts))
+
+   (packages (append (list
+		      zile
+		      connman
+		      nss-certs
+		      git
+		      xinit
+		      xorg-server
+		      ntfs-3g
+		      fuse)))
+
+   (services (append (list
+		      (service connman-service-type)
+		      %base-services)))
+
+   (bootloader (bootloader-configuration
+		(bootloader grub-efi-bootloader)
+		(target "/boot/efi")
+		(keyboard-layout keyboard-layout)))
+
+   (swap-devices (list
+		  "/dev/sdd2"))
+
+   (file-systems (append (list
+		  ;; efi
+		  (file-system
+		   (mount-point "/boot/efi")
+		   (type "vfat")
+		   (device "/dev/sdd1"))
+
+		  ;; root
+		  (file-system
+		   (mount-point "/")
+		   (type "ext4")
+		   (device "/dev/sdd3"))
+
+		  ;; home
+		  (file-system
+		   (mount-point "/home")
+		   (type "ext4")
+		   (device "/dev/sdd4"))))))
+
+#+END_SRC
+
+
+* Installation image
+
+#+BEGIN_SRC scheme :tangle ~/.config/guix/wj/install.scm
+
+    (define-module (wj install)
+      #:use-module (gnu system)
+      #:use-module (gnu system install)
+      #:use-module (gnu packages version-control)
+      #:use-module (gnu packages zile)
+      #:use-module (nongnu packages linux)
+      #:export (installation-os-nonfree))
+
+    (define installation-os-nonfree
+      (operating-system
+        (inherit installation-os)
+        (kernel linux)
+        (firmware (list linux-firmware))
+
+        ;; Add some extra packages useful for the installation process
+        (packages
+         (append (list
+                  git
+                  zile)
+                 (operating-system-packages installation-os)))))
+
+  installation-os-nonfree
+
+#+END_SRC
+
+
+* Channels
+
+#+BEGIN_SRC scheme :tangle ~/.config/guix/channels.scm
+
+  (cons* (channel
+	  (name 'nonguix)
+	  (url "https://gitlab.com/nonguix/nonguix"))
+	 %default-channels)
+
+#+END_SRC

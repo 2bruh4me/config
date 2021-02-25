@@ -1,0 +1,128 @@
+#+PROPERTY: header-args:emacs-lisp :tangle ~/.config/emacs/init.el
+
+* System determination
+
+#+BEGIN_SRC emacs-lisp
+
+  (when (eq (system-name) "silver")
+    (setq wj/system-type 'desktop))
+
+#+END_SRC
+
+
+* Don't pollute
+
+Disable some default behavior that pollutes the system.
+
+#+BEGIN_SRC emacs-lisp
+
+  (setq make-backup-files nil
+        user-emacs-directory "~/.cache/emacs/")
+
+#+END_SRC
+
+
+* Package management
+
+Bootstrap straight.el and use-package (if not on GuixSD).
+
+#+BEGIN_SRC emacs-lisp
+
+  (setq use-package-always-ensure nil
+        use-package-always-demand nil
+        use-package-always-defer  t)
+
+  (unless 'wj/system-guix
+    (setq straight-use-package-by-default t)
+
+    (defvar bootstrap-version)
+    (let ((bootstrap-file
+           (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+          (bootstrap-version 5))
+      (unless (file-exists-p bootstrap-file)
+        (with-current-buffer
+            (url-retrieve-synchronously
+             "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+             'silent 'inhibit-cookies)
+          (goto-char (point-max))
+          (eval-print-last-sexp)))
+      (load bootstrap-file nil 'nomessage))
+
+    (straight-use-package 'use-package))
+
+  (require 'use-package)
+
+#+END_SRC
+
+*Guix packages*
+
+#+BEGIN_SRC scheme :noweb-ref packages :noweb-sep ""
+
+  "emacs-use-package"
+
+#+END_SRC
+
+
+* QoL tweaks
+
+** y or n
+
+#+BEGIN_SRC emacs-lisp
+
+  (defalias 'yes-or-no-p 'y-or-no-p)
+
+#+END_SRC
+
+
+* Looks
+
+** Disable unwanted default GUI elements
+
+#+BEGIN_SRC emacs-lisp :tangle ~/.config/emacs/early-init.el
+
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+
+#+END_SRC
+
+** Theme
+
+#+BEGIN_SRC emacs-lisp
+
+  (use-package sweet-theme
+    :config
+    (load-theme 'sweet t))
+
+#+END_SRC
+
+*Guix packages*
+
+#+BEGIN_SRC scheme :noweb-ref packages :noweb-sep ""
+
+  "emacs-sweet-theme
+
+#+END_SRC
+
+
+* Eshell
+
+#+BEGIN_SRC emacs-lisp
+
+  (use-package eshell
+    :init
+    (setq eshell-directory-name "~/.cache/emacs/eshell"))
+
+#+END_SRC
+
+
+* Emacs profile
+
+#+BEGIN_SRC emacs-lisp scheme :tangle ~/.config/guix/manifests/emacs.scm :noweb yes
+
+  (specifications->manifest
+   '("emacs-next"
+     <<packages>>
+     ))
+
+#+END_SRC
